@@ -1,3 +1,4 @@
+from pose_utils import calculate_angle
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
@@ -30,6 +31,18 @@ while True:
                 x = int(lm.x * frame.shape[1])
                 y = int(lm.y * frame.shape[0])
                 cv2.circle(frame, (x, y), 4, (0, 255, 0), -1)
+
+            # NEW: calculate and print the right elbow angle
+            shoulder = landmarks[12]
+            elbow = landmarks[14]
+            wrist = landmarks[16]
+
+            shoulder_point = (shoulder.x, shoulder.y)
+            elbow_point = (elbow.x, elbow.y)
+            wrist_point = (wrist.x, wrist.y)
+
+            angle = calculate_angle(shoulder_point, elbow_point, wrist_point)
+            print(f"Elbow angle: {angle:.1f}")
 
     cv2.imshow("Webcam Test", frame)
 
