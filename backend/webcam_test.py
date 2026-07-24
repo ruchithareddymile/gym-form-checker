@@ -13,6 +13,8 @@ landmarker = vision.PoseLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0)
 frame_timestamp = 0
+rep_count = 0
+arm_state = "up"  # starts assuming arm is extended
 
 while True:
     success, frame = cap.read()
@@ -42,7 +44,13 @@ while True:
             wrist_point = (wrist.x, wrist.y)
 
             angle = calculate_angle(shoulder_point, elbow_point, wrist_point)
-            print(f"Elbow angle: {angle:.1f}")
+            if angle < 90 and arm_state == "up":
+                arm_state = "down"
+            elif angle > 160 and arm_state == "down":
+                arm_state = "up"
+                rep_count += 1
+
+            print(f"Elbow angle: {angle:.1f} | Reps: {rep_count}")
 
     cv2.imshow("Webcam Test", frame)
 
