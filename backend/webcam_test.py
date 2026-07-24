@@ -1,15 +1,35 @@
 import cv2
 import mediapipe as mp
-mp_pose = mp.solutions.pose
-mp_drawing = mp.solutions.drawing_utils
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+base_options = python.BaseOptions(model_asset_path='pose_landmarker.task')
+options = vision.PoseLandmarkerOptions(
+    base_options=base_options,
+    running_mode=vision.RunningMode.VIDEO
+)
+landmarker = vision.PoseLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0)
+frame_timestamp = 0
+
 while True:
     success, frame = cap.read()
     if not success:
         break
+
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+
+    result = landmarker.detect_for_video(mp_image, frame_timestamp)
+    frame_timestamp += 1
+
+    if result.pose_landmarks:
+        for landmarks in result.pose_landmarks:
+            for lm in landmarks:
+                x = int(lm.x * frame.shape[1])
+                y = int(lm.y * frame.shape[0])
+                cv2.circle(frame, (x, y), 4, (0, 255, 0), -1)
 
     cv2.imshow("Webcam Test", frame)
 

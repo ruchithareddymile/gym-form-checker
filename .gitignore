@@ -6,3 +6,4 @@ node_modules/
 dist/
 *.joblib
 .DS_Store
+*.task
