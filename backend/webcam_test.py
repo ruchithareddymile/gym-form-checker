@@ -1,4 +1,5 @@
 from pose_utils import calculate_angle
+from rep_counter import RepCounter
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
@@ -13,8 +14,7 @@ landmarker = vision.PoseLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0)
 frame_timestamp = 0
-rep_count = 0
-arm_state = "up"  # starts assuming arm is extended
+counter = RepCounter(down_threshold=90, up_threshold=160)
 
 while True:
     success, frame = cap.read()
@@ -44,14 +44,8 @@ while True:
             wrist_point = (wrist.x, wrist.y)
 
             angle = calculate_angle(shoulder_point, elbow_point, wrist_point)
-            if angle < 90 and arm_state == "up":
-                arm_state = "down"
-            elif angle > 160 and arm_state == "down":
-                arm_state = "up"
-                rep_count += 1
-
-            print(f"Elbow angle: {angle:.1f} | Reps: {rep_count}")
-
+            reps = counter.update(angle)
+            print(f"Elbow angle: {angle:.1f} | Reps: {reps}")
     cv2.imshow("Webcam Test", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
