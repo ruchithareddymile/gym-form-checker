@@ -1,5 +1,7 @@
 from pose_utils import calculate_angle
 from rep_counter import RepCounter
+from database import SessionLocal
+from models import WorkoutSession, RepLog
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
@@ -18,7 +20,19 @@ EXERCISES = {
     },
 }
 
-exercise = EXERCISES["squat"]   # change this to "squat" to switch exercises
+exercise = EXERCISES["elbow_curl"]   # change this to "squat" to switch exercises
+db = SessionLocal()
+
+# Look up the matching Exercise row in the database by name
+from models import Exercise
+exercise_name = "elbow_curl"  # keep this in sync with EXERCISES key above
+db_exercise = db.query(Exercise).filter(Exercise.name == exercise_name).first()
+
+session = WorkoutSession(exercise_id=db_exercise.id)
+db.add(session)
+db.commit()
+db.refresh(session)
+print(f"Started workout session #{session.id}")
 
 base_options = python.BaseOptions(model_asset_path='pose_landmarker.task')
 options = vision.PoseLandmarkerOptions(
@@ -55,9 +69,19 @@ while True:
             point_c = (landmarks[p3_idx].x, landmarks[p3_idx].y)
 
             angle = calculate_angle(point_a, point_b, point_c)
-            reps = counter.update(angle)
-            print(f"Angle: {angle:.1f} | Reps: {reps}")
+            result = counter.update(angle)
+            print(f"Angle: {angle:.1f} | Reps: {result['count']}")
 
+            if result["rep_completed"]:
+                rep = RepLog(
+                    session_id=session.id,
+                    rep_number=result["count"],
+                    min_angle=result["min_angle"],
+                    max_angle=result["max_angle"],
+                )
+                db.add(rep)
+                db.commit()
+                print(f"  → Saved rep #{result['count']} to database")
     cv2.imshow("Webcam Test", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -65,3 +89,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+db.close()
