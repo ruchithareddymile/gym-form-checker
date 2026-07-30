@@ -5,6 +5,21 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+EXERCISES = {
+    "elbow_curl": {
+        "points": (12, 14, 16),   # shoulder, elbow, wrist
+        "down_threshold": 90,
+        "up_threshold": 160,
+    },
+    "squat": {
+        "points": (23, 25, 27),   # left hip, left knee, left ankle
+        "down_threshold": 100,
+        "up_threshold": 160,
+    },
+}
+
+exercise = EXERCISES["squat"]   # change this to "squat" to switch exercises
+
 base_options = python.BaseOptions(model_asset_path='pose_landmarker.task')
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
@@ -14,7 +29,7 @@ landmarker = vision.PoseLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0)
 frame_timestamp = 0
-counter = RepCounter(down_threshold=90, up_threshold=160)
+counter = RepCounter(down_threshold=exercise["down_threshold"], up_threshold=exercise["up_threshold"])
 
 while True:
     success, frame = cap.read()
@@ -34,18 +49,15 @@ while True:
                 y = int(lm.y * frame.shape[0])
                 cv2.circle(frame, (x, y), 4, (0, 255, 0), -1)
 
-            # NEW: calculate and print the right elbow angle
-            shoulder = landmarks[12]
-            elbow = landmarks[14]
-            wrist = landmarks[16]
+            p1_idx, p2_idx, p3_idx = exercise["points"]
+            point_a = (landmarks[p1_idx].x, landmarks[p1_idx].y)
+            point_b = (landmarks[p2_idx].x, landmarks[p2_idx].y)
+            point_c = (landmarks[p3_idx].x, landmarks[p3_idx].y)
 
-            shoulder_point = (shoulder.x, shoulder.y)
-            elbow_point = (elbow.x, elbow.y)
-            wrist_point = (wrist.x, wrist.y)
-
-            angle = calculate_angle(shoulder_point, elbow_point, wrist_point)
+            angle = calculate_angle(point_a, point_b, point_c)
             reps = counter.update(angle)
-            print(f"Elbow angle: {angle:.1f} | Reps: {reps}")
+            print(f"Angle: {angle:.1f} | Reps: {reps}")
+
     cv2.imshow("Webcam Test", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
