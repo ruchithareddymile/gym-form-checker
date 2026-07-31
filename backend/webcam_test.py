@@ -20,12 +20,12 @@ EXERCISES = {
     },
 }
 
-exercise = EXERCISES["elbow_curl"]   # change this to "squat" to switch exercises
+exercise = EXERCISES["squat"]   # change this to "squat" to switch exercises
 db = SessionLocal()
 
 # Look up the matching Exercise row in the database by name
 from models import Exercise
-exercise_name = "elbow_curl"  # keep this in sync with EXERCISES key above
+exercise_name = "squat"  # keep this in sync with EXERCISES key above
 db_exercise = db.query(Exercise).filter(Exercise.name == exercise_name).first()
 
 session = WorkoutSession(exercise_id=db_exercise.id)
